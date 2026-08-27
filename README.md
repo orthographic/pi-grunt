@@ -14,7 +14,7 @@ Ships:
 ## Install
 
 ```bash
-pi install git:github.com/<you>/pi-grunt@v1
+pi install git:github.com/orthographic/pi-grunt@v1
 ```
 
 ## Usage
