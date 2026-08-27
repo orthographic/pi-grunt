@@ -7,7 +7,7 @@ decision-maker, and final reviewer.
 
 Ships:
 - **Extension** — the `grunt` and `grunt_control` tools, plus `/grunt-swap`, `/grunt-status`,
-  `/grunt-steer`, `/grunt-cancel`, `/grunt-resume` commands.
+  `/grunt-steer`, `/grunt-cancel`, `/grunt-resume`, and `/grunt-answer` commands.
 - **Skill** — `/skill:grunt` operator guide (launch, packet format, profiles, lifecycle).
 - **Agent profiles** — the four worker prompts this package loads.
 

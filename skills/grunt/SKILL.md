@@ -57,7 +57,7 @@ Every run returns a `runId`, selected profile, and persisted session details. Us
 - `/grunt-cancel <runId>`
 - `/grunt-resume <runId> <follow-up packet>`
 
-A worker's `contact_supervisor` request is surfaced as an interactive decision prompt. In a headless session it receives no reply and must report a blocker rather than guess.
+A worker's `contact_supervisor` decision request is relayed to the primary agent rather than blocking on a modal: the worker records a blocker and stops, then you reply with `/grunt-answer <runId> <decision>`, which resumes the run with that decision. This lets you ask follow-up questions in the primary session before deciding.
 
 ## Training work
 

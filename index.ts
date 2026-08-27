@@ -57,12 +57,17 @@ async function supervisorReply(ctx: ExtensionContext, request: GruntSupervisorRe
     if (ctx.hasUI) ctx.ui.notify(`${prefix}: ${request.message}`, "info");
     return "Acknowledged. Continue the assigned packet.";
   }
-  if (!ctx.hasUI) return undefined;
-  // ponytail: pi's ui.input never renders its placeholder, so the worker's question rides in the title.
-  const question = truncateHead(request.message, { maxLines: 20, maxBytes: 4000 }).content;
-  return ctx.ui.input(
-    `${prefix}\n\n${question}\n\nType your decision, or leave blank so the worker records a blocker:`,
-  );
+  // Defer decisions to the primary agent instead of blocking on a modal that pressures
+  // the user into an immediate reply. Returning undefined makes the worker see "no
+  // supervisor reply", record a blocker, and stop rather than guess. The primary agent
+  // (or user) then replies with /grunt-answer, which resumes the run with the decision.
+  if (ctx.hasUI) {
+    ctx.ui.notify(
+      `${prefix}:\n${truncateHead(request.message, { maxLines: 12, maxBytes: 2000 }).content}\n\nReply with /grunt-answer ${request.runId.slice(0, 8)} <decision>.`,
+      "warning",
+    );
+  }
+  return undefined;
 }
 
 async function runGrunt(
@@ -378,6 +383,36 @@ export default function (pi: ExtensionAPI) {
         }));
         ctx.ui.notify(response.status === "completed"
           ? `Grunt resumed: ${response.finalOutput || "(no output)"}`
+          : `Grunt ${response.status}: ${response.error ?? "worker failed"}`,
+        response.status === "completed" ? "info" : "error");
+      } catch (error) {
+        ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
+      } finally {
+        ctx.ui.setStatus("grunt", undefined);
+      }
+    },
+  });
+
+  pi.registerCommand("grunt-answer", {
+    description: "Reply to a Grunt worker decision request; resumes the run with the decision.",
+    handler: async (args, ctx) => {
+      const parsed = splitRunCommand(args);
+      if (!parsed?.rest) {
+        ctx.ui.notify("Usage: /grunt-answer <runId> <decision>", "warning");
+        return;
+      }
+      try {
+        ctx.ui.setStatus("grunt", `Resuming ${parsed.runId}…`);
+        const response = await enqueueGrunt("worker", () => gruntRunner.resume({
+          runId: parsed.runId,
+          task: `Decision from the supervisor: "${parsed.rest.trim()}". Incorporate it and continue the assigned packet.`,
+          ctx,
+          signal: ctx.signal,
+          onProgress: (text) => ctx.ui.setStatus("grunt", text),
+          onSupervisorRequest: (request) => supervisorReply(ctx, request),
+        }));
+        ctx.ui.notify(response.status === "completed"
+          ? `Grunt answered: ${response.finalOutput || "(no output)"}`
           : `Grunt ${response.status}: ${response.error ?? "worker failed"}`,
         response.status === "completed" ? "info" : "error");
       } catch (error) {
