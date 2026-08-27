@@ -42,7 +42,16 @@ async function preferredModel(): Promise<string | undefined> {
 async function selectModel(ctx: ExtensionContext) {
   const models = choices(ctx);
   if (!models.length) throw new Error("No selectable models are available for Grunt.");
-  const model = await ctx.ui.select("Select Grunt worker model", models);
+  const current = await preferredModel();
+  // ui.select has no default-index/label support, so put the current model first
+  // (the picker defaults to the top of the list) and name it in the title.
+  const ordered = current && models.includes(current)
+    ? [current, ...models.filter((m) => m !== current)]
+    : models;
+  const model = await ctx.ui.select(
+    current ? `Select Grunt worker model (current: ${current})` : "Select Grunt worker model",
+    ordered,
+  );
   if (!model) return undefined;
   await mkdir(dirname(preferencePath), { recursive: true });
   await writeFile(preferencePath, preferenceJson(model));
