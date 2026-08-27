@@ -1,6 +1,6 @@
 {
   "name": "pi-grunt",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Bounded standalone worker orchestration for Pi: scouting, implementation, tests, and diagnosis as discrete sub-agents.",
   "keywords": [
     "pi-package",

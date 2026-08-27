@@ -5,15 +5,6 @@ export function selectableModelIds(scopedModels, availableModels) {
   return [...new Set(models.map(({ provider, id }) => `${provider}/${id}`))].sort();
 }
 
-export function savedModel(text, available) {
-  try {
-    const model = JSON.parse(text).model;
-    return typeof model === "string" && available.includes(model) ? model : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
 export function preferenceJson(model) {
   return `${JSON.stringify({ model }, null, 2)}\n`;
 }
@@ -21,6 +12,5 @@ export function preferenceJson(model) {
 if (import.meta.url === new URL(process.argv[1], "file:").href) {
   const available = selectableModelIds([], [{ provider: "openai", id: "small" }, { provider: "local", id: "worker" }]);
   assert.deepEqual(available, ["local/worker", "openai/small"]);
-  assert.equal(savedModel(preferenceJson("local/worker"), available), "local/worker");
-  assert.equal(savedModel('{"model":"missing/model"}', available), undefined);
+  assert.equal(preferenceJson("local/worker"), `${JSON.stringify({ model: "local/worker" }, null, 2)}\n`);
 }

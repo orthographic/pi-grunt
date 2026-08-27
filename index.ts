@@ -5,7 +5,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { preferenceJson, savedModel, selectableModelIds } from "./grunt-model-preference.mjs";
+import { preferenceJson, selectableModelIds } from "./grunt-model-preference.mjs";
 import {
   createDefaultGruntRunner,
   type GruntProfileName,
@@ -26,9 +26,14 @@ function choices(ctx: ExtensionContext) {
   return selectableModelIds(ctx.scopedModels, ctx.modelRegistry.getAvailable());
 }
 
-async function preferredModel(ctx: ExtensionContext) {
+// Return the persisted worker model unconditionally. A saved choice is honored even
+// if it is missing from the current session's available set; grunt-runner validates
+// real availability and errors clearly if the model is genuinely gone. Filtering here
+// allowed a persisted model to silently fall back to a different default (e.g. Flash).
+async function preferredModel(): Promise<string | undefined> {
   try {
-    return savedModel(await readFile(preferencePath, "utf8"), choices(ctx));
+    const model = JSON.parse(await readFile(preferencePath, "utf8")).model;
+    return typeof model === "string" && model.includes("/") ? model : undefined;
   } catch {
     return undefined;
   }
@@ -45,7 +50,7 @@ async function selectModel(ctx: ExtensionContext) {
 }
 
 async function ensureModel(ctx: ExtensionContext) {
-  const saved = await preferredModel(ctx);
+  const saved = await preferredModel();
   if (saved) return saved;
   if (!ctx.hasUI) return undefined;
   return selectModel(ctx);
